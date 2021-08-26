@@ -147,7 +147,11 @@ val_dl = DataLoader(
 dl2 = DataLoader(
     ds2, batch_size=batch_size, shuffle=True, pin_memory=True, drop_last=True
 )
+
+# speed 2 as target set
 tgt_set = iter(dl2)
+# TCGA as target set
+tgt_set = iter(cbio)
 
 
 bce = nn.BCELoss()
@@ -174,6 +178,7 @@ def sample_tgt(step, n_batches):
 
 step = 0
 ll_c, ll_d = [], []
+ll_val = []
 acc_lst = []
 acc_tgt_lst = []
 
@@ -228,6 +233,7 @@ for epoch in range(1, max_epoch + 1):
             with torch.no_grad():
                 val_pred = nn.Sequential(F, C)(val.tensors[0])
                 ll_c_val = xe(val_pred, val.tensors[1])
+                ll_val.append(ll_c_val)
                 print(
                     "***** C Loss on validation set: {:.4f}, Step: {}".format(
                         ll_c_val, step
@@ -276,7 +282,11 @@ import matplotlib.pyplot as plt
 
 # XE loss
 plt.plot(range(len(ll_c)), ll_c)
-plt.savefig("loss_classifier.pdf")
+plt.savefig("loss_classifier_TEST.pdf")
+plt.close()
+# XE loss on validation
+plt.plot(range(len(ll_val)), ll_val)
+plt.savefig("loss_classifier_VAL.pdf")
 plt.close()
 # Discriminator loss
 plt.plot(range(len(ll_d)), ll_d)
