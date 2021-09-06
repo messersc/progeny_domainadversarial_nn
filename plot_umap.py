@@ -68,7 +68,7 @@ def plot_embedding2D_(embedding, distrs, classes, file_prefix):
     plt.scatter(
         embedding[:, 0],
         embedding[:, 1],
-        c=[sns.color_palette()[x] for x in distrs],
+        c=[sns.color_palette("colorblind", 11)[x] for x in distrs],
         alpha=0.4,
     )
 
@@ -80,7 +80,7 @@ def plot_embedding2D_(embedding, distrs, classes, file_prefix):
     plt.scatter(
         embedding[:, 0],
         embedding[:, 1],
-        c=[sns.color_palette()[x] for x in classes],
+        c=[sns.color_palette("colorblind", 11)[x] for x in classes],
         alpha=0.4,
     )
 
