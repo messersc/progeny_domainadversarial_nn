@@ -1,0 +1,9 @@
+# Domain-Adaptation for Cancer Pathway Prediction
+
+While cell lines are a popular model for cancer cells, the conditions in a dish are obviously different than what real tumor cells experience. The conditions in which tumor cells exist are often called the tumor microenviroment (TME), which includes surrounding non-tumor cells (stromal and immune cells) as well as blood vessels. These differences in environment are mirrored in differences in transcriptomes when comparing tumor cells to cells from a cell line, i.e. there is a shift in distribution of gene expression patterns.
+
+This shift in distribution between a machine learning model’s training data (cell lines) and its test data (tumor cells) is called domain shift. Conventional machine learning models usually handle domain shifts poorly, which means that their predictions get worse on the new data compared to their performance on the training data. The machine learning field researching solutions to this problem is called domain adaptation. The goal is to make models more robust, which means that they generalize better to unseen data that is subject to domain shift.
+
+One technique to minimize sensitivity of neural networks to domain shifted data was introduced by Ganin et al. (2016) and is called domain adversarial learning. Here, the two different data sets (cell lines vs tumor cells) are used for training. Crucially, the model only get to see the labels (pathway activation status) for the cell line data. The model is set up in a way to learn to predict pathway activation for the cell lines, while learning to ignore signals that would help to distinguish cell lines from tumors. 
+
+To show that this approach is superior, we train two neural networks, one without and one with domain adaptation. Finally, we want to show that the latter approach improves pathway activation prediction performance on the tumor data compared to the baseline model.
