@@ -1,4 +1,5 @@
 def get_accuracy(model, loader):
+    return -1
     # https://www.cs.toronto.edu/~lczhang/321/tut/tut04.pdf
     correct, total = 0, 0
     for xs, ts in loader:

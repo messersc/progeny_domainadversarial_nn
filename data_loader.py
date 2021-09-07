@@ -43,9 +43,9 @@ def dataloaders(X1, X2, Y1, Y2, top_mvg=4000, cbiopickle=None):
         # get intersection of features names and ordering
         common = np.intersect1d(X1.columns, X2.columns, assume_unique=True)
 
-    X1 = X1[common]
 
-    # select the top n most variable features
+    # select the top n most variable features from the source distribution
+    X1 = X1[common]
     var = np.var(X1)
     var = var.sort_values(ascending=False, na_position="last")
     var = var[0:top_mvg]
@@ -65,6 +65,7 @@ def dataloaders(X1, X2, Y1, Y2, top_mvg=4000, cbiopickle=None):
     assert (Y1.columns == Y2.columns).all()
 
     # remove all observations from Xs and Ys that do not belong to a class anymore
+    # TBD: could we keep all classes for source and only remove from target?
     keepers1 = Y1.values.sum(axis=1) != 0
     keepers2 = Y2.values.sum(axis=1) != 0
     X1 = X1.iloc[keepers1, :]
@@ -89,7 +90,7 @@ def dataloaders(X1, X2, Y1, Y2, top_mvg=4000, cbiopickle=None):
     #    torch.Tensor(Y2).type(torch.long),
     # )
 
-    ## HACK
+    ## TODO
     ## For multi-label classification, one-hot enc classes are needed
     ynames = Y1.columns
     Y1_ = Y1.values.argmax(axis=1)
