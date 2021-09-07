@@ -21,7 +21,7 @@ def plot_embedding2D(ds1, ds2, F, reduction="pca", file_prefix=None):
     nrow2 = emb2.shape[0]
 
     classes1 = ds1.tensors[1].detach().numpy()
-    if classes1.shape[1] > 1:
+    if len(classes1.shape) > 1:
         classes1 = classes1.argmax(axis=1).tolist()
     else:
         classes1 = classes1.tolist()

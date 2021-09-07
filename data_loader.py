@@ -12,7 +12,8 @@ def read_tsv(path):
 def get_class_weights(Y, names):
     """
     Return inverse of occurence of each class as weight.
-    Crash if a class has 0 occurences, as it should be filtered.
+    Crashing if a class has 0 occurences is ok,
+    as these classes should have been filtered out upfront.
     """
     w = np.bincount(Y)
     ws = sum(w)
@@ -24,8 +25,9 @@ def get_class_weights(Y, names):
 def dataloaders(X1, X2, Y1, Y2, top_mvg=4000, cbiopickle=None):
     """load features and classes from two sources,
     subset both to their shared features and classes.
-    Return three data loaders.
-    train and val from X1, test from X2
+    Return three pytorch data sets.
+    train and val from X1, test from X2.
+    Optionally return another data set if z-scores from cbioportal are present.
 
     Genes are in columns, samples in rows.
     """
@@ -42,7 +44,6 @@ def dataloaders(X1, X2, Y1, Y2, top_mvg=4000, cbiopickle=None):
     else:
         # get intersection of features names and ordering
         common = np.intersect1d(X1.columns, X2.columns, assume_unique=True)
-
 
     # select the top n most variable features from the source distribution
     X1 = X1[common]
@@ -64,7 +65,7 @@ def dataloaders(X1, X2, Y1, Y2, top_mvg=4000, cbiopickle=None):
     Y2 = Y2[common]
     assert (Y1.columns == Y2.columns).all()
 
-    # remove all observations from Xs and Ys that do not belong to a class anymore
+    # remove all observations from Xs and Ys that do not belong to a class
     # TBD: could we keep all classes for source and only remove from target?
     keepers1 = Y1.values.sum(axis=1) != 0
     keepers2 = Y2.values.sum(axis=1) != 0
@@ -75,29 +76,10 @@ def dataloaders(X1, X2, Y1, Y2, top_mvg=4000, cbiopickle=None):
     Y2 = Y2.iloc[keepers2, :]
     assert len(X2) == len(Y2)
 
-    # ynames = Y1.columns
-    # Y1 = Y1.values.argmax(axis=1)
-    # Y2 = Y2.values.argmax(axis=1)
-    # w = get_class_weights(Y1, ynames)
-
-    # ds1 = torch.utils.data.TensorDataset(
-    #    torch.Tensor(X1.values),
-    #    torch.Tensor(Y1).type(torch.long),
-    # )
-
-    # ds2 = torch.utils.data.TensorDataset(
-    #    torch.Tensor(X2.values),
-    #    torch.Tensor(Y2).type(torch.long),
-    # )
-
-    ## TODO
-    ## For multi-label classification, one-hot enc classes are needed
     ynames = Y1.columns
-    Y1_ = Y1.values.argmax(axis=1)
-    Y2_ = Y2.values.argmax(axis=1)
-    w = get_class_weights(Y1_, ynames)
-    Y1 = Y1.values
-    Y2 = Y2.values
+    Y1 = Y1.values.argmax(axis=1)
+    Y2 = Y2.values.argmax(axis=1)
+    w = get_class_weights(Y1, ynames)
 
     import stratified_split
 
@@ -105,28 +87,27 @@ def dataloaders(X1, X2, Y1, Y2, top_mvg=4000, cbiopickle=None):
 
     ds1 = torch.utils.data.TensorDataset(
         torch.Tensor(X1.values),
-        torch.Tensor(Y1).type(torch.float32),
+        torch.Tensor(Y1).type(torch.long),
     )
 
     train = torch.utils.data.TensorDataset(
         torch.Tensor(train_x.values),
-        torch.Tensor(train_y).type(torch.float32),
+        torch.Tensor(train_y).type(torch.long),
     )
     val = torch.utils.data.TensorDataset(
         torch.Tensor(test_x.values),
-        torch.Tensor(test_y).type(torch.float32),
+        torch.Tensor(test_y).type(torch.long),
     )
 
     ds2 = torch.utils.data.TensorDataset(
         torch.Tensor(X2.values),
-        torch.Tensor(Y2).type(torch.float32),
+        torch.Tensor(Y2).type(torch.long),
     )
 
     if cbiopickle:
         ds3 = torch.utils.data.TensorDataset(
             torch.Tensor(X3.values),
         )
-        # return ds1, ds2, w, (ds3, X3.index)
         return ds1, train, val, ds2, w, (ds3, X3.index)
 
     return ds1, train, val, ds2, w

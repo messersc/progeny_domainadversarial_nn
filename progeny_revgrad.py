@@ -11,9 +11,6 @@ from torch.utils.data import DataLoader
 import numpy as np
 import pandas as pd
 import datetime
-import os, sys
-
-from matplotlib.pyplot import imshow, imsave
 
 from gmm_linear import GMMLinear
 from acc import get_accuracy
@@ -79,8 +76,6 @@ class Classifier(nn.Module):
             nn.Linear(dim_feature_space, 10),
             nn.ReLU(inplace=True),
             nn.Linear(10, num_classes),
-            # HACK for multi-label
-            nn.Sigmoid(),
         )
 
     def forward(self, h):
@@ -120,7 +115,6 @@ D_opt = torch.optim.Adam(D.parameters())
 # data loaders
 import data_loader
 
-# ds1, ds2, class_weights, (ds3, tcganames) = data_loader.dataloaders(x1, x2, y1, y2, 4000, cbio)
 ds1, train, val, ds2, class_weights, (ds3, tcganames) = data_loader.dataloaders(
     x1, x2, y1, y2, 4000, cbio
 )
@@ -148,14 +142,9 @@ dl2 = DataLoader(
     ds2, batch_size=batch_size, shuffle=True, pin_memory=True, drop_last=True
 )
 
-###dl3 = DataLoader(
-###    (ds3, torch.zeros(1,1)), batch_size=batch_size, shuffle=True, pin_memory=True, drop_last=True
-###)
-
 # speed 2 as target set
 tgt_set = iter(dl2)
-# TCGA as target set
-#tgt_set = iter(dl3)
+
 
 def sample_tgt(step, n_batches):
     global tgt_set
@@ -169,10 +158,10 @@ def get_lambda(epoch, max_epoch):
     p = epoch / max_epoch
     return 2.0 / (1 + np.exp(-10.0 * p)) - 1.0
 
+
 bce = nn.BCELoss()
-# xe = nn.CrossEntropyLoss(weight=class_weights)
-# HACK do BCE loss for multi-label classification
-xe = nn.BCELoss(weight=class_weights)
+xe = nn.CrossEntropyLoss(weight=class_weights)
+
 D_src = torch.ones(batch_size, 1).to(DEVICE)  # Discriminator Label to real
 D_tgt = torch.zeros(batch_size, 1).to(DEVICE)  # Discriminator Label to fake
 D_labels = torch.cat([D_src, D_tgt], dim=0)
@@ -184,7 +173,6 @@ acc_lst = []
 acc_tgt_lst = []
 
 for epoch in range(1, max_epoch + 1):
-    # for idx, (src, labels) in enumerate(dl1):
     for idx, (src, labels) in enumerate(train_dl):
         tgt, _ = sample_tgt(step, n_batches)
         # Training Discriminator
@@ -209,7 +197,6 @@ for epoch in range(1, max_epoch + 1):
         Ld = bce(y, D_labels)
         lambda_ = lambda_scale  ### * get_lambda(epoch, max_epoch)
         Ltot = Lc + lambda_ * Ld
-        # Ltot = Lc + Ld
 
         F.zero_grad()
         C.zero_grad()
@@ -219,48 +206,6 @@ for epoch in range(1, max_epoch + 1):
         F_opt.step()
         D_opt.step()
 
-#        if step % 100 == 0:
-#            dt = datetime.datetime.now().strftime("%H:%M:%S")
-#            print(
-#                "Epoch: {}/{}, Step: {}, D Loss: {:.4f}, C Loss: {:.4f}, lambda: {:.4f} ---- {}".format(
-#                    epoch, max_epoch, step, Ld.item(), Lc.item(), lambda_, dt
-#                )
-#            )
-#            ll_c.append(Lc)
-#            ll_d.append(Ld)
-#            # check val_loss
-#            F.eval()
-#            C.eval()
-#            with torch.no_grad():
-#                val_pred = nn.Sequential(F, C)(val.tensors[0])
-#                ll_c_val = xe(val_pred, val.tensors[1])
-#                ll_val.append(ll_c_val)
-#                print(
-#                    "***** C Loss on validation set: {:.4f}, Step: {}".format(
-#                        ll_c_val, step
-#                    )
-#                )
-#            F.train()
-#            C.train()
-#
-#        if step % 400 == 0:
-#            F.eval()
-#            C.eval()
-#            with torch.no_grad():
-#                acc = get_accuracy(nn.Sequential(F, C), val_dl)
-#                print("***** Accuracy on source: {:.4f}, Step: {}".format(acc, step))
-#                acc_lst.append(acc)
-#
-#                # acc = get_accuracy(nn.Sequential(F, C), dl1)
-#                # print("***** Accuracy on source: {:.4f}, Step: {}".format(acc, step))
-#                # acc_lst.append(acc)
-#
-#                acc = get_accuracy(nn.Sequential(F, C), dl2)
-#                print("***** Accuracy on target: {:.4f}, Step: {}".format(acc, step))
-#                acc_tgt_lst.append(acc)
-#
-#            F.train()
-#            C.train()
         step += 1
 
     dt = datetime.datetime.now().strftime("%H:%M:%S")
@@ -279,9 +224,7 @@ for epoch in range(1, max_epoch + 1):
         ll_c_val = xe(val_pred, val.tensors[1])
         ll_val.append(ll_c_val)
         print(
-                "***** C Loss on validation set: {:.4f}, Epoch: {}".format(
-                ll_c_val, epoch
-            )
+            "***** C Loss on validation set: {:.4f}, Epoch: {}".format(ll_c_val, epoch)
         )
     F.train()
     C.train()
@@ -291,11 +234,13 @@ F.eval()
 C.eval()
 D.eval()
 
-# add sigmoid
 model = nn.Sequential(F, C)
 acc = get_accuracy(model, dl1)
 print("***** Accuracy on source: {:.4f}, Step: {}".format(acc, step))
 acc_lst.append(acc)
+
+acc = get_accuracy(model, val_dl)
+print("***** Accuracy on validation set: {:.4f}, Step: {}".format(acc, step))
 
 acc = get_accuracy(model, dl2)
 print("***** Accuracy on target: {:.4f}, Step: {}".format(acc, step))
@@ -307,7 +252,7 @@ import matplotlib.pyplot as plt
 
 # XE loss
 plt.plot(range(len(ll_c)), ll_c)
-plt.savefig("loss_classifier_TEST.pdf")
+plt.savefig("loss_classifier_TRAIN.pdf")
 plt.close()
 # XE loss on validation
 plt.plot(range(len(ll_val)), ll_val)
@@ -326,7 +271,6 @@ plt.close()
 from sklearn.metrics import confusion_matrix, classification_report
 
 predictions = model(ds2.tensors[0]).detach().argmax(1)
-predictions = model(ds2.tensors[0]).detach().round()
 print(
     classification_report(
         ds2.tensors[1].detach(), predictions, target_names=list(class_names)
@@ -334,7 +278,6 @@ print(
 )
 
 predictions = model(ds1.tensors[0]).detach().argmax(1)
-predictions = model(ds1.tensors[0]).detach().round()
 print(
     classification_report(
         ds1.tensors[1].detach(), predictions, target_names=list(class_names)
