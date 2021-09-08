@@ -30,7 +30,7 @@ cbio = "/vol/home-vol3/wbi/messersc/dev/footprints/03_torch_model/tcga_data/coad
 dim_feature_space = 10
 batch_size = 16
 
-max_epoch = 55
+max_epoch = 31
 lambda_scale = 1
 # end config
 
